@@ -1,13 +1,31 @@
 import asyncio
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from openai import AsyncOpenAI
 
 from models.chat import ChatRequest
 from core.config import settings
 
+from loguru import logger
+
 app = FastAPI()
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    end_time = time.perf_counter()
+    process_time_ms = (end_time - start_time) * 1000
+
+    logger.info(
+        f"{request.method} {request.url.path} -"
+        f"Status: {response.status_code} -"
+        f"Completed in {process_time_ms:.2f}ms"
+    )
+
+    return response
 
 @app.get("/")
 async def root():
