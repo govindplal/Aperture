@@ -2,11 +2,11 @@ from typing import Callable, Dict
 
 from loguru import logger
 
-from tools.functions import get_webpage_content, calculate_string_length
+from tools.functions import extract_markdown_from_url, calculate_string_length
 
 
 TOOL_REGISTRY: Dict[str, Callable] = {
-    "get_webpage_content": get_webpage_content,
+    "extract_markdown_from_url": extract_markdown_from_url,
     "calculate_string_length": calculate_string_length
 }
 

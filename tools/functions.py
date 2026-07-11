@@ -1,6 +1,8 @@
 
+import html2text
 import httpx
 from loguru import logger
+from playwright.async_api import async_playwright
 
 
 async def get_webpage_content(url: str) -> str:
@@ -21,3 +23,27 @@ async def get_webpage_content(url: str) -> str:
 async def calculate_string_length(text: str) -> str:
     logger.info("Tool executed: Calculating string length")
     return str(len(text))
+
+async def extract_markdown_from_url(url: str) -> str:
+    logger.info(f"Tool executed: Extracting markdown content from {url}")
+
+    try:
+        async with async_playwright() as p:
+
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+
+            await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+            html_content = await page.content()
+            await browser.close()
+
+            h = html2text.HTML2Text()
+            h.ignore_links = False
+            h.ignore_images = True
+
+            markdown_content = h.handle(html_content)
+            return markdown_content[:8000]
+
+    except Exception as e:
+        logger.error(f"Playwright extraction failed: {str(e)}")
+        return f"Error extracting content: {str(e)}"

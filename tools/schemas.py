@@ -1,20 +1,17 @@
 
-get_webpage_content_tool = {
+extract_markdown_from_url = {
     "type": "function",
-    "function": {
-        "name": "get_webpage_content",
-        "description": "Fetches the raw text content from a given webpage URL. Use this to read articles, documentation, or scrape text from a specific site.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "url": {
-                    "type": "string",
-                    "description": "The full, valid URL of the webpage to fetch (e.g., https://news.ycombinator.com)."
-                }
-            },
-            "required": ["url"]
-        }
-    },
+        "function": {
+            "name": "extract_markdown_from_url",
+            "description": "Navigates to a URL using a headless browser, renders JavaScript, and returns the webpage content extracted as clean Markdown text. Always use this to read web articles or documentation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "The full, valid URL to extract."}
+                },
+                "required": ["url"]
+            }
+        },
 }
 
 calculate_string_length = {
@@ -32,4 +29,4 @@ calculate_string_length = {
         }
 }
 
-AGENT_TOOLS = [get_webpage_content_tool, calculate_string_length]
+AGENT_TOOLS = [extract_markdown_from_url, calculate_string_length]
