@@ -2,15 +2,19 @@ import asyncio
 import time
 
 from fastapi import FastAPI, Request
+from routers import agent
 from fastapi.responses import StreamingResponse
-from openai import AsyncOpenAI
 
 from models.chat import ChatRequest
 from core.config import settings
+from core.llm import client
 
 from loguru import logger
 
+
 app = FastAPI()
+
+app.include_router(agent.router)
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -38,11 +42,6 @@ async def health():
 @app.post("/chat")
 async def stream_chat(payload: ChatRequest):
 
-    client = AsyncOpenAI(
-        base_url= settings.OPENAI_API_BASE_URL,
-        api_key= settings.OPENAI_API_KEY,
-        default_headers={"ngrok-skip-browser-warning": "true"}
-    )
 
     async def openai_generator():
 
