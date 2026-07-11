@@ -14,7 +14,22 @@ get_webpage_content_tool = {
             },
             "required": ["url"]
         }
-    }
+    },
 }
 
-AGENT_TOOLS = [get_webpage_content_tool]
+calculate_string_length = {
+        "type": "function",
+        "function": {
+            "name": "calculate_string_length",
+            "description": "Calculates the total number of characters in a provided string text block.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "The text string to measure."}
+                },
+                "required": ["text"]
+            }
+        }
+}
+
+AGENT_TOOLS = [get_webpage_content_tool, calculate_string_length]

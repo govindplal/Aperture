@@ -19,22 +19,25 @@ class AgentRequest(BaseModel):
 async def run_agent(request: AgentRequest):
     logger.info(f"Received task: {request.prompt}")
 
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant. ONLY use tools if explicitly required by the user's prompt. Otherwise, answer from your own knowledge."},
+        {"role": "user", "content": request.prompt}
+    ]
+
     response = await client.chat.completions.create(
         model=settings.LLM_MODEL_NAME,
-        messages=[
-            # THE FIX: Tell the model exactly how to behave
-            {"role": "system", "content": "You are a helpful assistant. ONLY use the get_webpage_content tool if the user explicitly provides a URL in their prompt. Otherwise, answer from your own knowledge."},
-            {"role": "user", "content": request.prompt}
-        ],
+        messages=messages,
         tools=AGENT_TOOLS,
         tool_choice="auto"
     )
     
     response_message = response.choices[0].message
     
-    # FLOW BRANCH A: The API correctly parsed the tool call
+    # FLOW BRANCH A: Standard API tool call
     if response_message.tool_calls:
-        logger.info("Tool call detected via standard API structure.")
+        logger.info("Tool call detected. Executing and re-feeding...")
+
+        messages.append(response_message)
         execution_results = []
         
         for tool_call in response_message.tool_calls:
@@ -46,14 +49,25 @@ async def run_agent(request: AgentRequest):
                 parsed_arguments = {}
             
             tool_output = await dispatch_tool(tool_name, parsed_arguments)
+
             
-            execution_results.append({
-                "tool_called": tool_name,
-                "arguments": parsed_arguments,
-                "result": tool_output
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "name": tool_name,
+                "content": str(tool_output)
             })
-            
-        return {"status": "tools_executed", "data": execution_results}
+
+
+            final_response = await client.chat.completions.create(
+                model=settings.LLM_MODEL_NAME,
+                messages=messages
+            )
+
+            return {
+                "status": "agent_loop_completed",
+                "content": final_response.choices[0].message.content
+            }
         
     # FLOW BRANCH B: Handling text or rogue JSON
     else:
@@ -71,10 +85,18 @@ async def run_agent(request: AgentRequest):
                 logger.info(f"Caught rogue JSON tool call: {tool_name}")
                 result = await dispatch_tool(tool_name, tool_args)
                 
+                messages.append({"role": "assistant", "content": text_content})
+                messages.append({"role": "user", "content": f"The tool '{tool_name}' executed successfully and returned this data: {result}. Please provide the final response to the user."})
+                
+                # Second LLM Call
+                final_response = await client.chat.completions.create(
+                    model=settings.LLM_MODEL_NAME,
+                    messages=messages
+                )
+                
                 return {
-                    "status": "tools_executed_from_text", 
-                    "tool_called": tool_name,
-                    "data": result
+                    "status": "agent_loop_completed_from_text", 
+                    "content": final_response.choices[0].message.content
                 }
         except json.JSONDecodeError:
             # It's not JSON, just normal text. Let it pass through.

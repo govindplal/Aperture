@@ -10,10 +10,14 @@ async def get_webpage_content(url: str) -> str:
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(url)
-            response.raise_for_status()  # Raise an error for bad responses ()
+            response.raise_for_status() 
 
             return response.text
 
     except Exception as e:
         logger.error(f"Failed to fetch {url}: {str(e)}")
         return f"Error fetching webpage: {str(e)}"
+
+async def calculate_string_length(text: str) -> str:
+    logger.info("Tool executed: Calculating string length")
+    return str(len(text))

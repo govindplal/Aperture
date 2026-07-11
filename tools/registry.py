@@ -2,11 +2,12 @@ from typing import Callable, Dict
 
 from loguru import logger
 
-from tools.functions import get_webpage_content
+from tools.functions import get_webpage_content, calculate_string_length
 
 
 TOOL_REGISTRY: Dict[str, Callable] = {
     "get_webpage_content": get_webpage_content,
+    "calculate_string_length": calculate_string_length
 }
 
 async def dispatch_tool(tool_name:str, tool_arguments: dict) -> str:
