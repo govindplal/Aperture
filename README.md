@@ -1,6 +1,6 @@
 # Aperture
 
-Aperture is the foundational backend for an agentic AI system. Currently in its initial build phase, this repository houses a high-performance, asynchronous FastAPI web server designed to handle real-time streaming LLM responses and robust tool-calling capabilities.
+Aperture is the foundational backend for an agentic AI system. Currently at **Checkpoint 05 of 15** in its build phase, this repository houses a high-performance, asynchronous FastAPI web server designed to handle real-time streaming LLM responses and robust tool-calling capabilities.
 
 This backend is built to bypass heavy abstractions (like LangChain) in favor of native SDKs, strong data contracts, and raw speed.
 
@@ -11,6 +11,7 @@ This backend is built to bypass heavy abstractions (like LangChain) in favor of 
 * **Multi-Tool Dispatch Registry:** Features a custom, asynchronous tool registry that parses LLM intentions, dynamically matches requests to active functions, validates JSON arguments, and runs tool code seamlessly.
 * **Headless DOM-to-Markdown Extraction:** Integrates automated browser instances to load JavaScript-rendered components, bypass basic bot blocks via custom headers, and process heavy raw DOM footprints into clean, context-efficient Markdown text.
 * **Defensive JSON Parsing:** Built-in "traps" to catch and parse rogue JSON outputs from open-source models that struggle with native tool-calling APIs, preventing application crashes.
+* **Containerized Infrastructure:** A unified `docker-compose` stack running a hot-reloading Linux API container, PostgreSQL 16, and Redis 7 on an isolated internal network.
 * **Modular Architecture:** Utilizes FastAPI `APIRouter` to cleanly isolate agent endpoints from core configuration, utilizing a Singleton pattern for the OpenAI client lifecycle.
 * **Strong Data Contracts:** Pydantic `BaseModel` classes validate all incoming request payloads, ensuring the LLM API only receives perfectly shaped message arrays.
 * **Fail-Fast Environment Config:** Managed via `pydantic-settings`. The server intercepts missing environment variables at boot time to prevent silent runtime crashes.
@@ -39,40 +40,53 @@ aperture/
 ├── .env.example         # Template for environment variables
 ├── .gitignore           # Ignored files and directories
 ├── .python-version      # Defined python version for uv
+├── docker-compose.yml   # Infrastructure orchestration (API, Postgres, Redis)
+├── Dockerfile           # Python 3.12 Linux environment definition
 ├── main.py              # Application entry point, Windows event loop fixes, and streaming logic
 ├── pyproject.toml       # Project metadata
 └── uv.lock              # Dependency lockfile
 ```
 
-## 🛠️ Local Setup
+## 🛠️ Setup & Execution
 
-This project uses `uv` for lightning-fast dependency management.
+### 1. Clone the repository
+```bash
+git clone [https://github.com/yourusername/Aperture.git](https://github.com/yourusername/Aperture.git)
+cd Aperture
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/yourusername/Aperture.git](https://github.com/yourusername/Aperture.git)
-   cd Aperture
-   ```
+### 2. Set up the environment
+Create a `.env` file in the root directory by copying the example:
+```bash
+cp .env.example .env
+```
+Ensure your database credentials and LLM endpoints are configured:
+```env
+# Example configuration for a local Ollama tunnel
+OPENAI_API_BASE_URL=[https://your-ngrok-url.ngrok-free.app/v1](https://your-ngrok-url.ngrok-free.app/v1)
+OPENAI_API_KEY=not_needed_for_local
+LLM_MODEL_NAME=qwen2.5-coder:7b
 
-2. **Set up the environment:**
-   Create a `.env` file in the root directory:
-   ```env
-   # Example configuration for a local Ollama tunnel
-   OPENAI_API_BASE_URL=[https://your-ngrok-url.ngrok-free.app/v1](https://your-ngrok-url.ngrok-free.app/v1)
-   OPENAI_API_KEY=not_needed_for_local
-   LLM_MODEL_NAME=qwen2.5-coder:7b
-   ```
+# Database Configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=aperture
+```
 
-3. **Install dependencies and binary runtimes:**
-   ```bash
-   uv add playwright html2text
-   uv run playwright install chromium
-   ```
+### 3. Boot the Infrastructure (Recommended)
+Aperture is designed to run inside Docker to ensure environment parity. This spins up the API, PostgreSQL, and Redis together.
+```bash
+docker compose up --build
+```
+*Note: The local directory is mounted as a volume. Editing code in your IDE will instantly hot-reload the containerized API.*
 
-4. **Start the server:**
-   ```bash
-   uv run uvicorn main:app --reload
-   ```
+### Alternative: Local Host Execution
+If you prefer running without Docker, use `uv` for dependency management:
+```bash
+uv add playwright html2text
+uv run playwright install chromium
+uv run uvicorn main:app --reload
+```
 
 ## 🧪 Testing the Agent
 
@@ -100,8 +114,18 @@ curl -X POST "http://localhost:8000/agent/run" \
 ```
 
 ## 🗺️ Roadmap
-- [x] **Build 01:** FastAPI Foundation & Streaming Loop
-- [x] **Build 02:** Manual Tool Dispatch System
-- [x] **Build 03:** Two-Tool Agent Loop
-- [x] **Build 04:** DOM-to-Markdown Extraction (Playwright)
-```
+- [x] **01** FastAPI Application Foundation
+- [x] **02** Manual Tool Dispatch System
+- [x] **03** Two-Tool Agent Loop
+- [x] **04** `dom_to_markdown` via Playwright
+- [x] **05** Docker Compose Stack (Postgres + Redis)
+- [ ] **06** Postgres Models + Alembic Migrations
+- [ ] **07** Full ReAct Agent Loop
+- [ ] **08** pgvector Semantic Memory
+- [ ] **09** Workflow Graph + Deterministic Replay
+- [ ] **10** Redis Task Queue + SSE
+- [ ] **11** Next.js Agent UI
+- [ ] **12** Memory Explorer + Replay UI
+- [ ] **13** Agent Control Interface
+- [ ] **14** Tests + CI with GitHub Actions
+- [ ] **15** Cloudflare Worker Deployment
