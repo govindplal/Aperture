@@ -1,6 +1,6 @@
 # Aperture
 
-Aperture is the foundational backend for an agentic AI system. Currently at **Checkpoint 05 of 15** in its build phase, this repository houses a high-performance, asynchronous FastAPI web server designed to handle real-time streaming LLM responses and robust tool-calling capabilities.
+Aperture is the foundational backend for an agentic AI system. Currently at **Checkpoint 06 of 15** in its build phase, this repository houses a high-performance, asynchronous FastAPI web server designed to handle real-time streaming LLM responses and robust tool-calling capabilities.
 
 This backend is built to bypass heavy abstractions (like LangChain) in favor of native SDKs, strong data contracts, and raw speed.
 
@@ -8,15 +8,17 @@ This backend is built to bypass heavy abstractions (like LangChain) in favor of 
 
 * **Asynchronous Streaming Engine:** Utilizes FastAPI's `StreamingResponse` to pipe LLM text deltas to the client character-by-character via Server-Sent Events (SSE).
 * **Agentic Re-feeding Loop:** Implements a closed-loop execution pattern. The backend captures tool execution output, appends the event history, and transparently re-routes data back to the LLM to synthesize natural-language conclusions.
+* **Persistent Agent Memory:** Utilizes `SQLAlchemy` (with the `asyncpg` driver) to automatically log every `Session`, `Message`, and `ToolCall` into PostgreSQL, providing a complete, queryable audit trail of the agent's actions.
+* **Automated Schema Migrations:** Fully integrated `Alembic` environment configured for asynchronous execution to manage database evolution without breaking the containerized stack.
+* **Generator Stream Architecture:** Combines HTTP chunk yielding with background database transactions, ensuring the user gets real-time streaming responses while silently logging the final accumulated text to the database.
 * **Multi-Tool Dispatch Registry:** Features a custom, asynchronous tool registry that parses LLM intentions, dynamically matches requests to active functions, validates JSON arguments, and runs tool code seamlessly.
 * **Headless DOM-to-Markdown Extraction:** Integrates automated browser instances to load JavaScript-rendered components, bypass basic bot blocks via custom headers, and process heavy raw DOM footprints into clean, context-efficient Markdown text.
 * **Defensive JSON Parsing:** Built-in "traps" to catch and parse rogue JSON outputs from open-source models that struggle with native tool-calling APIs, preventing application crashes.
 * **Containerized Infrastructure:** A unified `docker-compose` stack running a hot-reloading Linux API container, PostgreSQL 16, and Redis 7 on an isolated internal network.
-* **Modular Architecture:** Utilizes FastAPI `APIRouter` to cleanly isolate agent endpoints from core configuration, utilizing a Singleton pattern for the OpenAI client lifecycle.
+* **Modular Architecture:** Utilizes FastAPI `APIRouter` to cleanly isolate agent endpoints from core configuration.
 * **Strong Data Contracts:** Pydantic `BaseModel` classes validate all incoming request payloads, ensuring the LLM API only receives perfectly shaped message arrays.
 * **Fail-Fast Environment Config:** Managed via `pydantic-settings`. The server intercepts missing environment variables at boot time to prevent silent runtime crashes.
 * **OpenAI-Compatible Architecture:** Built with the `openai` Python SDK, seamlessly supporting local models (like Qwen via Ollama) and production APIs with zero code changes.
-* **Structured Request Logging:** Implements custom `loguru` middleware to track request methods, paths, status codes, and execution times down to the millisecond.
 
 ## 📁 Repository Structure
 
@@ -26,9 +28,12 @@ The project is modularized to support independent tools, data schemas, and route
 aperture/
 ├── core/
 │   ├── config.py        # Pydantic environment validation
+│   ├── database.py      # Async Postgres engine and dependency injection
 │   └── llm.py           # OpenAI client Singleton initialization
+├── migrations/          # Alembic asynchronous migration scripts and environment
 ├── models/
-│   └── chat.py          # Request/Response schemas
+│   ├── chat.py          # Pydantic Request/Response schemas
+│   └── db.py            # SQLAlchemy DeclarativeBase ORM models
 ├── routers/             
 │   └── agent.py         # Agent execution, loop control, and tool-routing endpoints
 ├── tools/
@@ -40,8 +45,9 @@ aperture/
 ├── .env.example         # Template for environment variables
 ├── .gitignore           # Ignored files and directories
 ├── .python-version      # Defined python version for uv
+├── alembic.ini          # Alembic configuration for migrations
 ├── docker-compose.yml   # Infrastructure orchestration (API, Postgres, Redis)
-├── Dockerfile           # Python 3.12 Linux environment definition
+├── Dockerfile           # Python 3.12 Linux environment with embedded Playwright binaries
 ├── main.py              # Application entry point, Windows event loop fixes, and streaming logic
 ├── pyproject.toml       # Project metadata
 └── uv.lock              # Dependency lockfile
@@ -83,14 +89,14 @@ docker compose up --build
 ### Alternative: Local Host Execution
 If you prefer running without Docker, use `uv` for dependency management:
 ```bash
-uv add playwright html2text
+uv add playwright html2text sqlalchemy alembic asyncpg
 uv run playwright install chromium
 uv run uvicorn main:app --reload
 ```
 
 ## 🧪 Testing the Agent
 
-You can test the multi-tool re-feeding capabilities using `curl`.
+You can test the multi-tool re-feeding capabilities using `curl`. Because the database is now integrated, every execution generates a persistent audit trail.
 
 **Test 1: Core Knowledge Conversing (No Tools)**
 ```bash
@@ -119,7 +125,7 @@ curl -X POST "http://localhost:8000/agent/run" \
 - [x] **03** Two-Tool Agent Loop
 - [x] **04** `dom_to_markdown` via Playwright
 - [x] **05** Docker Compose Stack (Postgres + Redis)
-- [ ] **06** Postgres Models + Alembic Migrations
+- [x] **06** Postgres Models + Alembic Migrations
 - [ ] **07** Full ReAct Agent Loop
 - [ ] **08** pgvector Semantic Memory
 - [ ] **09** Workflow Graph + Deterministic Replay
