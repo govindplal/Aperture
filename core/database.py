@@ -10,3 +10,7 @@ engine = create_async_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 
 # The session factory spits out temporary sessions for our API routes to use
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
